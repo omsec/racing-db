@@ -33,6 +33,8 @@ DROP TABLE if EXISTS COD_CodeLookup
 ;
 DROP TABLE if EXISTS VEC_Vehicle
 ;
+DROP TABLE if EXISTS VTT_VehicleTypesThemes
+;
 --DROP TABLE if EXISTS CMP_Championship
 ;
 --DROP TABLE if EXISTS RCE_Race
@@ -115,6 +117,8 @@ DROP PROCEDURE if EXISTS searchCustomTracks
 DROP PROCEDURE if EXISTS searchCustomTrackNames
 ;
 DROP PROCEDURE if EXISTS searchStandardTrackNames
+;
+DROP PROCEDURE if EXISTS deleteTrack
 ;
 
 DROP VIEW if EXISTS V_Votes
@@ -297,6 +301,16 @@ CREATE TABLE VEC_Vehicle
 	VEC_Description VARCHAR(1000) NULL
 );
 CREATE INDEX NI1_Vehicle ON VEC_Vehicle (COD_Game, VEC_Name)
+;
+
+-- intersection VEC/COD:CarTheme
+CREATE TABLE VTT_VehicleTypesThemes
+(
+	VTT_RowId INT AUTO_INCREMENT PRIMARY KEY,
+	VEC_CarId INT NOT NULL,
+	COD_CarTheme INT NOT NULL
+);
+CREATE UNIQUE INDEX UI1_VTT ON VTT_VehicleTypesThemes (VEC_CarId, COD_CarTheme)
 ;
 
 /*
@@ -2074,6 +2088,16 @@ BEGIN
 		USR_UserId = userId;
 END //
 
+CREATE PROCEDURE deleteTrack(
+	IN trackId INT
+)
+BEGIN
+	DELETE
+	FROM RAT_RacingTrack
+	WHERE
+		RAT_TrackId = trackId;
+END //
+
 DELIMITER ;
 
 -- more SPs...
@@ -3033,3 +3057,272 @@ INSERT INTO VEC_Vehicle (USR_CreatedBy, COD_Game, VEC_Rarity, VEC_Year, VEC_Name
 INSERT INTO VEC_Vehicle (USR_CreatedBy, COD_Game, VEC_Rarity, VEC_Year, VEC_Name, VEC_Unlock, VEC_Value, VEC_Speed, VEC_Handling, VEC_Acceleration, VEC_Launch, VEC_Breaking, VEC_Performance) VALUES (1, 0, 'Legendary',2016,'W Motors Lykan HyperSport','Autoshow',3400000,8.7,8.4,7.7,9.2,9,'S2 907');
 INSERT INTO VEC_Vehicle (USR_CreatedBy, COD_Game, VEC_Rarity, VEC_Year, VEC_Name, VEC_Unlock, VEC_Value, VEC_Speed, VEC_Handling, VEC_Acceleration, VEC_Launch, VEC_Breaking, VEC_Performance) VALUES (1, 0, 'Common',1945,'Willys MB Jeep','Autoshow',40000,3.9,4.2,4,6,4,'D 100');
 INSERT INTO VEC_Vehicle (USR_CreatedBy, COD_Game, VEC_Rarity, VEC_Year, VEC_Name, VEC_Unlock, VEC_Value, VEC_Speed, VEC_Handling, VEC_Acceleration, VEC_Launch, VEC_Breaking, VEC_Performance) VALUES (1, 0, 'Legendary',2016,'Zenvo ST1','HL: World''s Fastest - Tier 10',1000000,8.8,7.9,7.1,8.7,8.4,'S1 900');
+
+-- Cars "manually" assigned to Themes
+-- according to https://forums.forzamotorsport.net/turn10_postsm608012_Route-maps--Event-restrictions--Discovery-Lists----April-Rivals.aspx#post_608012
+-- (see post >= #17
+
+-- Sports Utility Heroes
+INSERT INTO VTT_VehicleTypesThemes
+(VEC_CarId, COD_CarTheme)
+SELECT
+	VEC_CarId, 27
+FROM VEC_Vehicle
+WHERE
+	VEC_Name IN
+(
+'BMW X6 M',
+'BMW X5 M',
+'Cadillac Escalade ESV',
+'Jaguar F-PACE S',
+'Jeep Grand Cherokee SRT',
+'Lamborghini Urus',
+'Land Rover Range Rover Sport SVR',
+'Land Rover Range Rover Supercharged',
+'Mercedes-Benz G 65 AMG',
+'Porsche Cayenne Turbo',
+'Porsche Macan Turbo'
+)
+;
+
+-- Offroad
+INSERT INTO VTT_VehicleTypesThemes
+(VEC_CarId, COD_CarTheme)
+SELECT
+	VEC_CarId, 28
+FROM VEC_Vehicle
+WHERE
+	VEC_Name IN
+(
+'Ford F-150 Raptor Race Truck',
+'Ford F-150 Raptor Horizon Edition',
+'Ford F-150 Raptor',
+'Ford F-150 SVT Raptor Shelby',
+'Ford F-150 SVT Raptor',
+'Ford Bronco',
+'Hummer H1 Alpha',
+'International Scout 800A',
+'Jeep Wrangler Rubicon',
+'Jeep CJ5 Renegade',
+'Jeep Willys MB',
+'Lamborghini LM 002',
+'Land Rover Defender 90',
+'Land Rover Series III',
+'Nissan Titan Warrior Concept',
+'Ram Ram Runner Horizon Edition',
+'Ram Ram Runner',
+'Terradyne Gurkha LAPV',
+'Toyota FJ40'
+)
+;
+
+-- Offroad Buggies
+INSERT INTO VTT_VehicleTypesThemes
+(VEC_CarId, COD_CarTheme)
+SELECT
+	VEC_CarId, 29
+FROM VEC_Vehicle
+WHERE
+	VEC_Name IN
+(
+'Alumi Craft Class 10 Race Car',
+'Ariel Nomad',
+'Hot Wheels Rip Rod',
+'Penhall The Cholla',
+'Polaris RZR XP 1000 EPS Rockstar Edition',
+'Polaris RZR XP 1000 EPS Horizon Edition',
+'Polaris RZR XP 1000 EPS'
+)
+;
+
+-- Extreme Offroad
+INSERT INTO VTT_VehicleTypesThemes
+(VEC_CarId, COD_CarTheme)
+SELECT
+	VEC_CarId, 26
+FROM VEC_Vehicle
+WHERE
+	VEC_Name IN
+(
+'AMG TD M12S Warthog CST',
+'Baldwin #97 Monster Energy Trophy Truck',
+'Bowler EXR S',
+'Ford Ranger T6 Rally Raid',
+'Ford F-100 Flareside Abatti Racing Trophy Truck',
+'Jeep Trailcat',
+'Local Motors Rally Fighter',
+'MINI Monster Energy All4 Racing Countryman',
+'RJ Anderson #37 Polaris RZR-Rockstar Energy Pro 2 Truck',
+'Toyota Hilux Arctic Trucks AT38'
+)
+;
+
+-- Cult Classics
+INSERT INTO VTT_VehicleTypesThemes
+(VEC_CarId, COD_CarTheme)
+SELECT
+	VEC_CarId, 10
+FROM VEC_Vehicle
+WHERE
+	VEC_Name IN
+(
+'Abarth 595 esseesse',
+'AMC Gremlin X',
+'BMW 2002 Turbo',
+'BMW Isetta 300 Export',
+'Chevrolet Corvette',
+'Chevrolet Corvette',
+'Datsun 510',
+'Datsun 2000 Roadster',
+'FIAT 124 Sport Spider',
+'FIAT X1/9',
+'Ford Capri RS3100',
+'Holden FX Sedan',
+'Honda S800',
+'Jaguar XJ-S',
+'Jeep Grand Wagoneer',
+'Mazda Cosmo 110S Series II',
+'Meyers Manx',
+'Morgan 3 Wheeler',
+'Nissan Skyline H/T 2000GT-R',
+'Nissan Skyline 2000GT-R',
+'Nissan Fairlady Z 432',
+'Nissan Silvia',
+'Reliant Supervan III',
+'Renault Alpine GTA Le Mans',
+'Toyota Corolla SR5',
+'Toyota Celica GT',
+'Volvo 123GT'
+)
+;
+
+-- Rods and Customs
+INSERT INTO VTT_VehicleTypesThemes
+(VEC_CarId, COD_CarTheme)
+SELECT
+	VEC_CarId, 17
+FROM VEC_Vehicle
+WHERE
+	VEC_Name IN
+(
+'Chevrolet Impala Super Sport 409',
+'Chevrolet Bel Air',
+'Ford F-100',
+'Ford De Luxe Coupe',
+'Ford De Luxe Five-Window Coupe',
+'Hot Wheels Bone Shaker',
+'Hot Wheels Twin Mill',
+'Mercury Coupe',
+'Plymouth Fury'
+)
+;
+
+-- Classic Muscle
+INSERT INTO VTT_VehicleTypesThemes
+(VEC_CarId, COD_CarTheme)
+SELECT
+	VEC_CarId, 16
+FROM VEC_Vehicle
+WHERE
+	VEC_Name IN
+(
+'AMC Javelin-AMX',
+'AMC Rebel "The Machine"',
+'Chevrolet Camaro Z28',
+'Chevrolet Vega GT',
+'Chevrolet Corvette',
+'Chevrolet Chevelle Super Sport 454 Horizon Edition',
+'Chevrolet Chevelle Super Sport 454',
+'Chevrolet Camaro Z28',
+'Chevrolet Camaro Super Sport Coupe Horizon Edition',
+'Chevrolet Camaro Super Sport Coupe',
+'Chevrolet Corvette',
+'Chevrolet Chevelle Super Sport 396',
+'Chevrolet Nova Super Sport',
+'Chrysler VH Valiant Charger R/T E49',
+'Dodge Challenger R/T',
+'Dodge Charger R/T',
+'Dodge Charger Daytona HEMI',
+'Dodge Dart HEMI Super Stock Horizon Edition',
+'Dodge Dart HEMI Super Stock',
+'Ford Mustang II King Cobra',
+'Ford XB Falcon GT',
+'Ford Falcon XY GTHO Phase III',
+'Ford Mustang Boss 302 Horizon Edition',
+'Ford Mustang Boss 302',
+'Ford Falcon XR GT',
+'Ford Super Deluxe Station Wagon',
+'Holden Torana Horizon Edition',
+'Holden Torana A9X',
+'Holden HQ Monaro GTS 350',
+'Oldsmobile Hurst/Olds 442',
+'Plymouth Cuda 426 Hemi',
+'Pontiac Firebird Trans Am',
+'Pontiac Firebird Trans Am SD-455',
+'Pontiac GTO Judge',
+'Pontiac GTO'
+)
+;
+
+-- Retro Muscle
+INSERT INTO VTT_VehicleTypesThemes
+(VEC_CarId, COD_CarTheme)
+SELECT
+	VEC_CarId, 18
+FROM VEC_Vehicle
+WHERE
+	VEC_Name IN
+(
+'Buick Regal GNX',
+'Chevrolet Corvette',
+'Chevrolet Camaro IROC-Z',
+'Chevrolet Monte Carlo Super Sport',
+'Dodge Viper GTS ACR',
+'Ford Crown Victoria Police Interceptor',
+'Ford SVT Cobra R',
+'Ford SVT Cobra R',
+'Ford SVT Cobra R',
+'HDT VK Commodore Group A',
+'Holden VL Commodore Group A SV',
+'HSV GTSR',
+'Plymouth Prowler',
+'Pontiac Firebird Trans Am GTA'
+)
+;
+
+-- Modern Muscle
+INSERT INTO VTT_VehicleTypesThemes
+(VEC_CarId, COD_CarTheme)
+SELECT
+	VEC_CarId, 19
+FROM VEC_Vehicle
+WHERE
+	VEC_Name IN
+(
+'Cadillac ATS-V',
+'Cadillac CTS-V Sedan',
+'Cadillac CTS-V Coupe',
+'Chevrolet Camaro Super Sport',
+'Chevrolet Corvette',
+'Chevrolet Corvette',
+'Chevrolet Camaro Z/28',
+'Chevrolet Super Sport',
+'Chevrolet Corvette',
+'Chevrolet Corvette',
+'Chrysler 300 SRT8',
+'Dodge Viper ACR',
+'Dodge Charger SRT Hellcat Pre-Order Edition',
+'Dodge Charger SRT Hellcat',
+'Dodge Challenger SRT Hellcat Horizon Edition',
+'Dodge Challenger SRT Hellcat',
+'Dodge Viper SRT10 ACR Horizon Edition',
+'Dodge Viper SRT10 ACR',
+'Ford Shelby GT350R Pre-Order Edition',
+'Ford Shelby GT350R',
+'Ford Falcon XR8',
+'Ford Falcon GT F 351',
+'Ford Shelby GT500',
+'HSV GTS',
+'SRT Viper GTS'
+)
+;
