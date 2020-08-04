@@ -88,6 +88,8 @@ DROP PROCEDURE if EXISTS createRace
 ;
 DROP PROCEDURE if EXISTS searchTrackNames
 ;
+DROP PROCEDURE if EXISTS searchTrackNamesBP
+;
 DROP PROCEDURE if EXISTS readChampionship
 ;
 DROP PROCEDURE if EXISTS listRaces
@@ -1443,6 +1445,26 @@ BEGIN
 		RAT_Name;
 END //
 
+-- removes Street Sceens Races
+CREATE PROCEDURE searchTrackNamesBP(
+	IN cdGame INT,
+	IN searchTerm VARCHAR(20)
+)
+BEGIN
+	SELECT
+		RAT_TrackId,
+		COD_Type,
+		COD_Series,
+		RAT_Name
+	FROM RAT_RacingTrack
+	WHERE
+		COD_Game = cdGame
+		and COD_Series <> 4
+		AND RAT_Name LIKE CONCAT(searchTerm, '%')
+	ORDER BY
+		RAT_Name;
+END //
+
 CREATE PROCEDURE searchCustomTrackNames(
 	IN cdGame INT,
 	IN searchTerm VARCHAR(20)
@@ -2147,6 +2169,12 @@ INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUE
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Series', 2, 0, 'Dirt Racing');
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Series', 3, 0, 'Cross Country');
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Series', 4, 0, 'Street Scene');
+
+-- kleine notlösung, da ich im Code-System kein "selectable" vorgesehen hab :-/
+-- (für Custom-Rennen gibt's keine Street Series)
+INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Series BP-Creation', 1, 0, 'Road Racing');
+INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Series BP-Creation', 2, 0, 'Dirt Racing');
+INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Series BP-Creation ', 3, 0, 'Cross Country');
 
 -- used to pick/display championships that can be "mixed"
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Championship Series', 0, 0, 'mixed');
