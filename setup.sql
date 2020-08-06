@@ -19,25 +19,25 @@ USE eierwerf_racing
 
 DROP TABLE if EXISTS COD_CodeLookup
 ;
---DROP TABLE if exists TXT_TextTranslation
+DROP TABLE if exists TXT_TextTranslation
 ;
---DROP TABLE if EXISTS MVC_MultiValueCode
+DROP TABLE if EXISTS MVC_MultiValueCode
 ;
---DROP TABLE if EXISTS MVF_MultiValueFile
+DROP TABLE if EXISTS MVF_MultiValueFile
 ;
---DROP TABLE if EXISTS USR_User
+DROP TABLE if EXISTS USR_User
 ;
---DROP TABLE if EXISTS RAV_RatingVote
+DROP TABLE if EXISTS RAV_RatingVote
 ;
---DROP TABLE if EXISTS RAT_RacingTrack
+DROP TABLE if EXISTS RAT_RacingTrack
 ;
 DROP TABLE if EXISTS VEC_Vehicle
 ;
 DROP TABLE if EXISTS VTT_VehicleTypesThemes
 ;
---DROP TABLE if EXISTS CMP_Championship
+DROP TABLE if EXISTS CMP_Championship
 ;
---DROP TABLE if EXISTS RCE_Race
+DROP TABLE if EXISTS RCE_Race
 ;
 
 DROP PROCEDURE if EXISTS listCodeTypes
@@ -152,7 +152,6 @@ CREATE TABLE COD_CodeLookup
 CREATE UNIQUE INDEX UI_CodeLookup1 ON COD_CodeLookup (COD_Domain, COD_Value, COD_Language)
 ;
 
-/*
 -- used to translate content (such as event names)
 CREATE TABLE TXT_TextTranslation
 (
@@ -206,8 +205,8 @@ CREATE TABLE USR_User
 	USR_ModifiedBy INT,
 	USR_LoginName VARCHAR(50) NOT NULL,
 	USR_LoginActive BOOLEAN NOT NULL DEFAULT FALSE,
-	--COD_LoginInactiveReason
-	--USR_LoginInactiveUntil
+	-- COD_LoginInactiveReason
+	-- USR_LoginInactiveUntil
 	USR_Password VARCHAR(255) NOT NULL,
 	USR_XBoxTag VARCHAR(50),
 	USR_DiscordName VARCHAR(50),
@@ -267,8 +266,8 @@ CREATE TABLE RAT_RacingTrack -- event or blueprint
 	COD_Weather INT NULL,
 	COD_TimeProgression INT NULL,
 	-- more info
-	RAT_DefaultLapTimeMin SMALLINT NULL, -- using given Car Class; what's considered good in a class? ext table...?
-	RAT_DistanceKM SMALLINT NULL,
+	RAT_DefaultLapTimeSec INT NULL, -- using given Car Class; what's considered good in a class? ext table...?
+	RAT_DistanceKM FLOAT NULL,
 	RAT_SharingCode INT NULL, -- FH ingame sharing code
 	COD_Difficulty INT NULL,
 	
@@ -279,7 +278,6 @@ CREATE INDEX NI1_RacingTrack ON RAT_RacingTrack (RAT_Name)
 ;
 CREATE INDEX NI2_RacingTrack ON RAT_RacingTrack (RAT_SharingCode)
 ;
-*/
 
 CREATE TABLE VEC_Vehicle
 (
@@ -315,7 +313,6 @@ CREATE TABLE VTT_VehicleTypesThemes
 CREATE UNIQUE INDEX UI1_VTT ON VTT_VehicleTypesThemes (VEC_CarId, COD_CarTheme)
 ;
 
-/*
 CREATE TABLE CMP_Championship
 (
 	CMP_ChampionshipId INT AUTO_INCREMENT PRIMARY KEY,
@@ -366,7 +363,6 @@ CREATE UNIQUE INDEX UI_Race1 ON RCE_Race (CMP_ChampionshipId, RCE_RaceNo)
 ;
 CREATE INDEX NI_Race1 ON RCE_Race (CMP_ChampionshipId)
 ;
-*/
 
 CREATE VIEW V_Votes as
 	SELECT
@@ -847,7 +843,7 @@ BEGIN
 		rat.RAT_Created,
 		rat.USR_CreatedBy,
 		--usrCreated.USR_LoginName AS USR_CreatedByName,
-		COALESCE(usrCreated.USR_XBoxTag, usrCreated.USR_DiscordName, usrCreated.USR_LoginName) AS USR_CreatedByName,
+		COALESCE(rat.RAT_Designer, usrCreated.USR_XBoxTag, usrCreated.USR_DiscordName, usrCreated.USR_LoginName) AS USR_CreatedByName,
 		rat.RAT_Modified,
 		rat.USR_ModifiedBy,
 		usrModified.USR_LoginName AS USR_ModifiedByName,
@@ -886,7 +882,7 @@ BEGIN
 		rat.COD_TimeProgression,
 		COALESCE(cdTimeProgression.COD_Text, rat.COD_TimeProgression) AS TXT_TimeProgression,
 		-- cst info block III
-		rat.RAT_DefaultLapTimeMin,
+		rat.RAT_DefaultLapTimeSec,
 		rat.RAT_DistanceKM,
 		rat.RAT_SharingCode,
 		rat.COD_Difficulty,
@@ -1010,8 +1006,8 @@ CREATE PROCEDURE createTrack(
 	IN cdWeather INT,
 	IN cdTimeProgression INT,
 	
-	IN defaultLapTimeMin SMALLINT,
-	IN distanceKM SMALLINT,
+	IN defaultLapTimeSec INT,
+	IN distanceKM FLOAT,
 	IN sharingCode INT,
 	IN cdDifficulty INT,
 	
@@ -1046,7 +1042,7 @@ BEGIN
 		COD_Weather,
 		COD_TimeProgression,
 		
-		RAT_DefaultLapTimeMin,
+		RAT_DefaultLapTimeSec,
 		RAT_DistanceKM,
 		RAT_SharingCode,
 		COD_Difficulty,
@@ -1079,7 +1075,7 @@ BEGIN
 		cdWeather,
 		cdTimeProgression,
 		
-		defaultLapTimeMin,
+		defaultLapTimeSec,
 		distanceKM,
 		sharingCode,
 		cdDifficulty,
@@ -3354,3 +3350,129 @@ WHERE
 'SRT Viper GTS'
 )
 ;
+
+-- SGG/ZF77 Community Tracks (imported from Excel)
+-- ACHTUNG: phpMyAdmin auf dem Server akzeptiert zwar Umlaute und Sonderzeichen,
+-- führen dann aber in der Anwendung zu einem Absturz ohne klare Fehlermeldung!!
+-- (die services kommen "leer" zurück, kein Content/Response)
+-- deshalb mussten Unmlaute und das deutsche ß entfernt werden.
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Highlands to Beach, Sprint', 'PlutoKaskade641', 0, 540, 26.6, 878858666, '', 'Glen Rannoch, Pfad');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Beach to Ambleside, Sprint', 'PlutoKaskade641', 0, 595, 30.1, 388938475, '', 'The Meadows, Sprint');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Ambleside to Highlands, Sprint', 'PlutoKaskade641', 0, 415, 22.5, 904916263, '', 'Ambleside, Sprint');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Kleine Rundstrecke 1.0', 'PlutoKaskade641', 0, 0, NULL, NULL, '', 'The Meadows, Sprint');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Horizon Rundkurs 1.0', 'PlutoKaskade641', 1, 1080, 60.3, 172291707, '', 'Lake District, Sprint');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Around Edinburgh', 'PlutoKaskade641', 4, 140, 7.5, 101788614, '', 'Nordstadt, Querfeldeinrundstrecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Highspeed-Runde ums Festival', 'PlutoKaskade641', 2, 270, 16.7, 891242477, '', 'Der Goliath');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'See und Highlands Rundfahrt', 'PlutoKaskade641', 2, 455, 26.8, 168058143, '', 'Derwent, Seeufer-Sprint');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Fluss-See-Runde', 'rauschi46', 2, 555, 32.5, 443644673, 'Power', 'Gaerten, Querfeldeinrundstrecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Dummer Name', 'rauschi46', 0, 900, 51, 168626152, '', 'Ambleside, Querfeldeinjagd');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Durch n Wald und uebern Acker', 'rauschi46', 0, 675, 38.5, 143839212, '', 'Derwent, Staubecken-Sprint');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, '39,3km Rundkurs Strasse', 'Quax2013', 1, 680, 39.3, 167140431, 'Power, Checkpoint!', 'Broadway Dorf, Rundstrecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Fuer Pluto - Schlaengel', 'Quax2013', 4, 195, 4.8, 120067187, 'sehr anspruchsvoll, kleiner Dirt-Teil, max 6 Leute', 'Bamburgh, Kiefernwald-Pfad');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Circuit 1', 'MrElvinco', 5, 133, 6.9, 778985861, '2 schwierige Harnadelkurven', 'Waeldchen, Rundstrecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Circuit 2', 'MrElvinco', 4, 130, 7.1, 770125318, '', 'Broadway, Dorf-Rundstrecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Circuit 3', 'MrElvinco', 0, 0, NULL, NULL, '', 'Bamburgh, Kueste-Rundstrecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Circuit 4', 'MrElvinco', 2, 370, 20.3, 872808689, 'anspruchsvollere Strecke', 'Moorhead-Windfarm, Rundstrecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Circuit 5', 'MrElvinco', 3, 90, 4.8, 550621256, 'kurzes Rennen -> gut zum Einfahren', 'Greendale, Club-Strecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Circuit 6', 'MrElvinco', 6, 120, 5, 147522464, '90° Kurven', 'Broadway, Dorf-Rundstrecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Tour la Forza', 'XScarface86X', 0, 1155, 58.6, 121013903, '', 'Greendale, Super Sprint');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Rundkurs, Stadt', 'XScarface86X', 3, 200, 8.2, 682007112, '', 'Edinburgh, Bahnhof - Rundstrecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Bergrunde', 'XScarface86X', 3, 212, 11.3, 110330366, '', 'Glen Rannoch, Huegelstrasse - Sprint');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Big Sprint', 'XScarface86X', 0, 960, 52.7, 817670124, '', 'Greendale, Club-Strecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Edinburgh nach Broadway Sprint', 'XScarface86X', 0, 555, 27.6, 619723521, '', 'Princess Street Gardens, Rundstrecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Windpark Runde, Rundkurs', 'XScarface86X', 2, 222, 11.8, 132814264, '', 'Mudkickers-Allrad, Grip-Rennen');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Festivalrunde, Rundkurs', 'XScarface86X', 2, 122, 5.7, 565069661, '', 'Ambleside, Schleife - Querfeldein');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Goliath V2.0, Sprint', 'XScarface86X', 0, 1230, 64.4, 132124540, '', 'Goliath');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Festivalrunde 2.0, Rundkurs', 'XScarface86X', 2, 150, 7.6, 407103362, '', 'Horizon-Festival, Rundstrecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Windfarm zu Windmuehle, Sprint', 'XScarface86X', 0, 600, 34.6, 322010086, '', 'Moorhead-Windfarm, Rundstrecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Bamburgh to Ambleside, Sprint', 'XScarface86X', 0, 470, 25, 610741906, '', 'Bamburgh, Kueste - Rundstrecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Pretty Easy, Rundkurs', 'XScarface86X', 2, 175, 9.5, 182131917, '', 'Elmsdon on Sea, Sprint');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Derwent Speed Kurs, Rundkurs', 'XScarface86X', 2, 184, 13.1, 161299877, '', 'Lake District, Sprint');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Around The Hill, Rundkurs', 'XScarface86X', 2, 228, 12.8, 152799131, '', 'Glen Rannoch, Querfeldein');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Flugfeld Stadt, Rundkurs', 'XScarface86X', 2, 260, 12, 171789071, '', 'The Meadows, Sprint');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Odyssee, Rundkurs', 'XScarface86X', 2, 920, 51.5, 170890022, '', 'Glen Rannoch, Huegelstrasse - Sprint');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Die Sau, Rundkurs', 'XScarface86X', 3, 312, 18.1, 162256793, '', 'Lakehurst, Wald - Grip-Rennen');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Just One More, Rundkurs', 'XScarface86X', 3, 460, 25, 229473628, '', 'Greendale, Super Sprint');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'City Trip, Rundkurs', 'XScarface86X', 4, 230, 10, 168219459, '', 'Greendale, Super Sprint');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Ambleside Runde, Rundkurs', 'XScarface86X', 3, 212, 10.8, 171088218, '', 'Ambleside, Dorf - Rundstrecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Lets Fetz, Sprint', 'XScarface86X', 0, 1010, 50.3, 149482771, '', 'Horizon-Festival, Rundstrecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Mayhem, Rundkurs', 'XScarface86X', 4, 153, 6.6, 133566693, 'mehrere Kreuzungen!', 'Princess Street Gardens, Rundstrecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Der Elch, Rundkurs', 'XScarface86X', 2, 552, 29, 162047596, '', 'The Meadows, Sprint');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Terminator', 'AndiYTDE', 1, 1005, 57.4, 554402570, '', 'Horizon-Festival, Rundstrecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Edinburgh Grand-Prix', 'AndiYTDE', 5, 75, 3.4, 484645749, 'max. 6 Fahrer', 'Princes Street Gardens, Rundstrecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Volker Racho die 2.', 'Joshi140104', 2, 385, 25.7, 342137770, '', 'Lakehurst Forest, Sprint');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 6, 'Curved Curse', 'Nur24hracer', 3, 297, 15.8, 149533035, '', 'Elmsdon on Sea, Sprint');
+
+-- map forza tracks (umlaute/sonderzeichen bereinigt)
+UPDATE RAT_RacingTrack a
+INNER JOIN RAT_RacingTrack b
+	ON b.RAT_Name = case a.RAT_CustomRoute 
+		when 'Ambleside, Dorf - Rundstrecke' then 'Ambleside Village Circuit'
+		when 'Ambleside, Querfeldeinjagd' then 'Ambleside Rush Cross Country'
+		when 'Ambleside, Schleife - Querfeldein' then 'Ambleside Loop Cross Country'
+		when 'Ambleside, Sprint' then 'Ambleside Sprint'
+		when 'Bamburgh, Kiefernwald-Pfad' then 'Bamburgh Pinewood Trail'
+		when 'Bamburgh, Kueste - Rundstrecke' then 'Bamburgh Coast Circuit'
+		when 'Bamburgh, Kueste-Rundstrecke' then 'Bamburgh Coast Circuit'
+		when 'Broadway Dorf, Rundstrecke' then 'Broadway Village Circuit'
+		when 'Broadway, Dorf-Rundstrecke' then 'Broadway Village Circuit'
+		when 'Der Goliath' then 'THE GOLIATH'
+		when 'Derwent, Seeufer-Sprint' then 'Derwent Lakeside Sprint'
+		when 'Derwent, Staubecken-Sprint' then 'Derwent Reservoir Sprint'
+		when 'Edinburgh, Bahnhof - Rundstrecke' then 'Edinburgh Station Circuit'
+		when 'Elmsdon on Sea, Sprint' then 'Elmsdon on Sea Sprint'
+		when 'Gaerten, Querfeldeinrundstrecke' then 'Gardens Cross Country Circuit'
+		when 'Glen Rannoch, Huegelstrasse - Sprint' then 'Glen Rannoch Hillside Sprint'
+		when 'Glen Rannoch, Pfad' then 'Glen Rannoch Trail'
+		when 'Glen Rannoch, Querfeldein' then 'Glen Rannoch Cross Country'
+		when 'Goliath' then 'THE GOLIATH'
+		when 'Greendale, Club-Strecke' then 'Greendale Club Circuit'
+		when 'Greendale, Super Sprint' then 'Greendale Super Sprint'
+		when 'Horizon-Festival, Rundstrecke' then 'Horizon Festival Circuit'
+		when 'Lake District, Sprint' then 'Lake District Sprint'
+		when 'Lakehurst Forest, Sprint' then 'Lakehurst Forest Sprint'
+		when 'Lakehurst, Wald - Grip-Rennen' then 'Lakehurst Woodland Scramble'
+		when 'Moorhead-Windfarm, Rundstrecke' then 'Moorhead Wind Farm Circuit'
+		when 'Mudkickers-Allrad, Grip-Rennen' then 'Mudkickers'' 4x4 Scramble'
+		when 'Nordstadt, Querfeldeinrundstrecke' then 'North City Cross Country Circuit'
+		when 'Princes Street Gardens, Rundstrecke' then 'Princess Street Gardens Circuit'
+		when 'Princess Street Gardens, Rundstrecke' then 'Princess Street Gardens Circuit'
+		when 'The Meadows, Sprint' then 'The Meadows Sprint'	
+		END
+SET
+	a.RAT_ForzaRouteId = b.RAT_TrackId
+WHERE
+	a.COD_Type = 1;
+	
+-- manual additions (unstructured in sources)
+UPDATE RAT_RacingTrack
+SET
+	COD_Series = 2
+WHERE
+	RAT_Name IN (
+		'Highlands to Beach, Sprint',
+		'Fuer Pluto - Schlaengel',
+		'Windpark Runde, Rundkurs',
+		'Die Sau, Rundkurs'
+	)
+;
+
+UPDATE RAT_RacingTrack
+SET
+	COD_Series = 3
+WHERE
+	RAT_Name IN (
+		'Around Edinburgh',
+		'Fluss-See-Runde',
+		'Dummer Name',
+		'Festivalrunde, Rundkurs',
+		'Around The Hill, Rundkurs'
+	)
+;
+
+UPDATE RAT_RacingTrack
+	SET RAT_DefaultLapTimeSec = NULL
+WHERE
+	RAT_DefaultLapTimeSec = 0
+;
+
