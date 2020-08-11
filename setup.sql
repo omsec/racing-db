@@ -23,6 +23,8 @@ DROP TABLE if EXISTS COD_CodeLookup
 ;
 DROP TABLE if exists TXT_TextTranslation
 ;
+DROP TABLE if exists TAG_TagAssignment
+;
 DROP TABLE if EXISTS MVC_MultiValueCode
 ;
 DROP TABLE if EXISTS MVF_MultiValueFile
@@ -41,6 +43,8 @@ DROP TABLE if EXISTS CMP_Championship
 ;
 DROP TABLE if EXISTS RCE_Race
 ;
+DROP TABLE if EXISTS CMT_Comment
+;
 
 DROP PROCEDURE if EXISTS listCodeTypes
 ;
@@ -57,6 +61,8 @@ DROP PROCEDURE if EXISTS listMvfEntries
 DROP PROCEDURE if EXISTS deleteMvfEntry
 ;
 DROP PROCEDURE if EXISTS deleteMvfEntries
+;
+DROP PROCEDURE if EXISTS readFileName
 ;
 DROP PROCEDURE if EXISTS readVote
 ;
@@ -124,6 +130,14 @@ DROP PROCEDURE if EXISTS searchStandardTrackNames
 ;
 DROP PROCEDURE if EXISTS deleteTrack
 ;
+DROP PROCEDURE if EXISTS createComment
+;
+DROP PROCEDURE if EXISTS listComments
+;
+DROP PROCEDURE if EXISTS updateComment
+;
+DROP PROCEDURE if EXISTS deleteComment
+;
 
 DROP VIEW if EXISTS V_Votes
 ;
@@ -140,6 +154,8 @@ DROP VIEW if EXISTS V_ChampionshipInfo1
 DROP VIEW if EXISTS V_ChampionshipInfo2
 ;
 DROP VIEW if EXISTS V_Championship
+;
+DROP VIEW if EXISTS V_User
 ;
 
 CREATE TABLE COD_CodeLookup
@@ -364,6 +380,26 @@ CREATE TABLE RCE_Race
 CREATE UNIQUE INDEX UI_Race1 ON RCE_Race (CMP_ChampionshipId, RCE_RaceNo)
 ;
 CREATE INDEX NI_Race1 ON RCE_Race (CMP_ChampionshipId)
+;
+
+-- up/down votes casted in RAV_RatingVote
+CREATE TABLE CMT_Comment
+(
+	-- meta data
+	CMT_RowId INT AUTO_INCREMENT PRIMARY KEY,
+	CMT_Created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	USR_CreatedBy INT NOT NULL,
+	CMT_Modified TIMESTAMP NULL,
+	USR_ModifiedBy INT NULL,
+	CMT_TableRef CHAR(3) NOT NULL, -- RAT, CMP
+	CMT_RecordId INT NOT NULL, -- FK in referenced table
+	-- payload
+	CMT_Parent INT NULL,
+	COD_Status INT NOT NULL, -- pending, blocked, public, deleted by creator
+	CMT_Comment VARCHAR(1000) NOT NULL
+)
+;
+CREATE INDEX NI_Comment1 ON CMT_Comment (CMT_TableRef, CMT_RecordId)
 ;
 
 CREATE VIEW V_Votes as
@@ -652,6 +688,55 @@ SELECT
 	0 AS itemRating
 FROM VEC_Vehicle
 */
+
+-- es darf zwar nur einen Eintrag pro UserId in der MVF geben,
+-- zur Sicherheit wird mit dieser View dennoch sichergestellt,
+-- dass auch nur ein Record erscheint. Leider gibt es diverse
+-- Limitierungen in  MySql (keine Sub-Queries in Views) sowie
+-- keine OLAP-Funktionen, und  generell ein teilweise anderes
+-- Verhalten bezüglich Funktionen und Group By.
+CREATE VIEW V_User as
+	SELECT
+		usr.USR_UserId,
+		COALESCE(usr.USR_XBoxTag, usr.USR_DiscordName, usr.USR_LoginName) AS USR_DisplayName,
+		usr.USR_Created AS USR_Joined,
+		usr.USR_LoginActive,
+		usr.USR_LoginName,
+		usr.USR_XBoxTag,
+		usr.USR_DiscordName,
+		usr.COD_Role,
+		COALESCE(cdRole.COD_Text, usr.COD_Role) AS TXT_Role,
+		usr.COD_Language,
+		COALESCE(cdLanguage.COD_Text, usr.COD_Language) AS TXT_Language,
+		usr.USR_LastSeen,
+		MAX(mvfPP.MVF_FileName) AS MVF_ProfilePicture		
+	FROM USR_User usr
+	-- profile picture
+	LEFT OUTER JOIN MVF_MultiValueFile mvfPP
+		ON  mvfPP.MVF_TableRef = 'USR'
+		AND mvfPP.MVF_RecordId = usr.USR_UserId
+	LEFT OUTER JOIN COD_CodeLookup cdRole
+		ON  cdRole.COD_Domain = 'Roles'
+		AND cdRole.COD_Value = usr.COD_Role
+		AND cdRole.COD_Language = 0 -- "sylang" (alternative SP mit #temp)
+	LEFT OUTER JOIN COD_CodeLookup cdLanguage
+		ON  cdLanguage.COD_Domain = 'Languages'
+		AND cdLanguage.COD_Value = usr.COD_Language
+		AND cdLanguage.COD_Language = 0 -- "sylang" (alternative SP mit #temp)
+	GROUP BY
+		usr.USR_UserId,
+		COALESCE(usr.USR_XBoxTag, usr.USR_DiscordName, usr.USR_LoginName),
+		usr.USR_Created,
+		usr.USR_LoginActive,
+		usr.USR_LoginName,
+		usr.USR_XBoxTag,
+		usr.USR_DiscordName,
+		usr.COD_Role,
+		COALESCE(cdRole.COD_Text, usr.COD_Role),
+		usr.COD_Language,
+		COALESCE(cdLanguage.COD_Text, usr.COD_Language),
+		usr.USR_LastSeen
+;
 
 -- ToDo: Constrains/References
 
@@ -1225,6 +1310,16 @@ BEGIN
 		AND MVF_RecordId = recordId;
 END //
 
+CREATE PROCEDURE readFileName(
+	IN fileId INT
+)
+BEGIN
+	SELECT MVF_FileName
+	FROM MVF_MultiValueFile
+	WHERE
+		MVF_RowId = fileId;
+END //
+
 CREATE PROCEDURE readVote(
 	IN tableRef CHAR(3),
 	IN recordId INT,
@@ -1438,26 +1533,6 @@ BEGIN
 	FROM RAT_RacingTrack
 	WHERE
 		COD_Game = cdGame
-		AND RAT_Name LIKE CONCAT(searchTerm, '%')
-	ORDER BY
-		RAT_Name;
-END //
-
--- removes Street Sceens Races
-CREATE PROCEDURE searchTrackNamesBP(
-	IN cdGame INT,
-	IN searchTerm VARCHAR(20)
-)
-BEGIN
-	SELECT
-		RAT_TrackId,
-		COD_Type,
-		COD_Series,
-		RAT_Name
-	FROM RAT_RacingTrack
-	WHERE
-		COD_Game = cdGame
-		and COD_Series <> 4
 		AND RAT_Name LIKE CONCAT(searchTerm, '%')
 	ORDER BY
 		RAT_Name;
@@ -2118,6 +2193,116 @@ BEGIN
 		RAT_TrackId = trackId;
 END //
 
+CREATE PROCEDURE createComment(
+	IN userId INT,
+	IN tableRef CHAR(3),
+	IN recordId INT,
+	IN parentId INT,
+	IN cdStatus INT,
+	IN commentText VARCHAR(1000),
+	OUT id INT
+)
+BEGIN
+	INSERT INTO CMT_Comment
+	(USR_CreatedBy, CMT_TableRef, CMT_RecordId, CMT_Parent, COD_Status, CMT_Comment)
+	VALUES
+	(userId, tableRef, recordId, parentId, cdStatus, commentText);
+	
+	SELECT LAST_INSERT_ID()
+	INTO id;
+END //
+
+CREATE PROCEDURE listComments(
+	IN userId INT,
+	IN tableRef CHAR(3),
+	IN recordId INT
+)
+BEGIN
+	SELECT
+		cmt.CMT_RowId,
+		cmt.CMT_Created,
+		usrCreated.USR_UserId AS USR_CreatedBy,
+		usrCreated.USR_DisplayName AS USR_CreatedByName,		
+		usrCreated.MVF_ProfilePicture,
+		cmt.CMT_Modified,
+		usrModified.USR_UserId AS USR_ModifiedBy,
+		usrModified.USR_DisplayName AS USR_ModifiedByName,
+		cmt.CMT_Parent,
+		cmt.COD_Status,
+		COALESCE(cdStatus.COD_Text, cmt.COD_Status) AS TXT_Status,
+		-- do not return "soft-deleted" comments, but notify about the measure
+		CASE cmt.COD_Status
+			WHEN 3 THEN COALESCE(cdStatus.COD_Text, cmt.COD_Status)
+			ELSE cmt.CMT_Comment
+		END AS CMT_Comment,
+		COALESCE(cvt.RAV_UpVotes, 0) AS RAV_UpVotes,
+		COALESCE(cvt.RAV_DownVotes, 0) AS RAV_DownVotes,
+		COALESCE(rav.RAV_Vote, 0) AS RAV_UserVote
+	FROM CMT_Comment cmt
+	-- apply current user's language
+	JOIN USR_User usrCurrent
+		ON  usrCurrent.USR_UserId = userId
+	JOIN V_User usrCreated
+		ON  usrCreated.USR_UserId = cmt.USR_CreatedBy
+	-- creator or administrator
+	LEFT OUTER JOIN V_User usrModified
+		ON  usrModified.USR_UserId = cmt.USR_ModifiedBy
+	-- total votes
+	LEFT OUTER JOIN V_Votes cvt
+		ON  cvt.RAV_TableRef = 'CMT'
+		AND cvt.RAV_RecordId = cmt.CMT_RowId
+	-- user's vote
+	LEFT OUTER JOIN RAV_RatingVote rav
+		ON  rav.RAV_TableRef = 'CMT'
+		AND rav.RAV_RecordId = cmt.CMT_RowId
+		AND rav.USR_UserId = userId	
+	LEFT OUTER JOIN COD_CodeLookup cdStatus
+		ON  cdStatus.COD_Domain = 'Comment Status'
+		AND cdStatus.COD_Value = cmt.COD_Status
+		AND cdStatus.COD_Language = usrCurrent.COD_Language
+	WHERE
+		cmt.CMT_TableRef = tableRef
+		AND cmt.CMT_RecordId = recordId
+	ORDER BY
+		cmt.CMT_Created DESC,
+		cmt.CMT_Parent
+
+	LIMIT 100;
+END //
+
+CREATE PROCEDURE updateComment(
+	IN userId INT,
+	IN tableRef CHAR(3),
+	IN recordId INT,
+	IN cdStatus INT, -- possibly "pending" (0)
+	IN commentText VARCHAR(1000)
+)
+BEGIN
+	UPDATE CMT_Comment
+	SET
+		CMT_Modified = CURRENT_TIMESTAMP,
+		USR_ModifiedBy = userId,
+		COD_Status = cdStatus,
+		CMT_Comment = commentText
+	WHERE
+		CMT_TableRef = tableRef
+		AND CMT_RecordId = recordId;
+END //
+
+-- actually "soft-delete" (usually by creator)
+-- admin user see admin_deleteComment (toDo)
+CREATE PROCEDURE deleteComment(
+	IN userId INT, -- currently not used
+	IN id INT
+)
+BEGIN
+	UPDATE CMT_Comment
+	SET
+		COD_Status = 3 -- deleted by user
+	WHERE
+		CMT_RowId = id;
+END //
+
 DELIMITER ;
 
 -- more SPs...
@@ -2278,6 +2463,11 @@ INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUE
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Terrain', 0,  0, 'road');
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Terrain', 1,  0, 'dirt');
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Terrain', 2,  0, 'offroad');
+
+INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Comment Status', 0,  0, 'pending');
+INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Comment Status', 1,  0, 'released');
+INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Comment Status', 2,  0, 'blocked');
+INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Comment Status', 3,  0, 'deleted by user');
 
 -- according to https://forums.forzamotorsport.net/turn10_postsm976461_Event-race-List.aspx
 INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, RAT_Name, COD_Type, COD_Series) VALUES (1, 0, 'Ambleside Village Circuit', 0, 1);
@@ -3475,3 +3665,8 @@ WHERE
 	RAT_DefaultLapTimeSec = 0
 ;
 
+UPDATE RAT_RacingTrack
+	SET RAT_Description = NULL
+WHERE
+	RAT_Description = ''
+;
