@@ -138,6 +138,10 @@ DROP PROCEDURE if EXISTS updateComment
 ;
 DROP PROCEDURE if EXISTS deleteComment
 ;
+DROP PROCEDURE if EXISTS readVoting
+;
+DROP PROCEDURE if EXISTS countUserVotes
+;
 
 DROP VIEW if EXISTS V_Votes
 ;
@@ -270,7 +274,7 @@ CREATE TABLE RAT_RacingTrack -- event or blueprint
 	RAT_Designer VARCHAR(50) NULL, -- effective designer of custom track, credits
 	RAT_Reference VARCHAR(20) NULL, -- ID in 3rd-party excels etc.
 	
-	-- restrictions
+	-- restrictions (optional)
 	COD_CarTheme INT NULL,
 	VEC_CarId INT NULL,
 	COD_CarClass INT NULL,
@@ -1351,6 +1355,16 @@ WHERE
 	AND rav.RAV_RecordId = recordId;
 END //
 
+CREATE PROCEDURE countUserVotes(
+	IN userId INT
+)
+BEGIN
+	SELECT COUNT(*) AS count_Votes
+	FROM rav_ratingvote
+	WHERE
+		USR_UserId = userId;
+END //
+
 /*
 CREATE PROCEDURE listImageURLs(
 	IN tableRef CHAR(3),
@@ -1526,16 +1540,22 @@ CREATE PROCEDURE searchTrackNames(
 )
 BEGIN
 	SELECT
-		RAT_TrackId,
-		COD_Type,
-		COD_Series,
-		RAT_Name
-	FROM RAT_RacingTrack
+		rat.RAT_TrackId,
+		rat.COD_Type,
+		rat.COD_Series,
+		rat.RAT_Name,
+		rat.COD_CarClass,
+		rat.COD_CarTheme,
+		rat.VEC_CarId,
+		vec.VEC_Name as VEC_CarName
+	FROM RAT_RacingTrack rat
+	LEFT OUTER JOIN VEC_Vehicle vec
+		ON  vec.VEC_CarId = rat.VEC_CarId
 	WHERE
-		COD_Game = cdGame
-		AND RAT_Name LIKE CONCAT(searchTerm, '%')
+		rat.COD_Game = cdGame
+		AND rat.RAT_Name LIKE CONCAT(searchTerm, '%')
 	ORDER BY
-		RAT_Name;
+		rat.RAT_Name;
 END //
 
 CREATE PROCEDURE searchCustomTrackNames(
@@ -1544,17 +1564,23 @@ CREATE PROCEDURE searchCustomTrackNames(
 )
 BEGIN
 	SELECT
-		RAT_TrackId,
-		COD_Type,
-		COD_Series,
-		RAT_Name
-	FROM RAT_RacingTrack
+		rat.RAT_TrackId,
+		rat.COD_Type,
+		rat.COD_Series,
+		rat.RAT_Name,
+		rat.COD_CarClass,
+		rat.COD_CarTheme,
+		rat.VEC_CarId,
+		vec.VEC_Name as VEC_CarName
+	FROM RAT_RacingTrack rat
+	LEFT OUTER JOIN VEC_Vehicle vec
+		ON  vec.VEC_CarId = rat.VEC_CarId
 	WHERE
-		COD_Game = cdGame
-		AND COD_Type = 1
-		AND RAT_Name LIKE CONCAT(searchTerm, '%')
+		rat.COD_Game = cdGame
+		AND rat.COD_Type = 1
+		AND rat.RAT_Name LIKE CONCAT(searchTerm, '%')
 	ORDER BY
-		RAT_Name;
+		rat.RAT_Name;
 END //
 
 CREATE PROCEDURE searchStandardTrackNames(
@@ -1563,17 +1589,23 @@ CREATE PROCEDURE searchStandardTrackNames(
 )
 BEGIN
 	SELECT
-		RAT_TrackId,
-		COD_Type,
-		COD_Series,
-		RAT_Name
-	FROM RAT_RacingTrack
+		rat.RAT_TrackId,
+		rat.COD_Type,
+		rat.COD_Series,
+		rat.RAT_Name,
+		rat.COD_CarClass,
+		rat.COD_CarTheme,
+		rat.VEC_CarId,
+		vec.VEC_Name as VEC_CarName
+	FROM RAT_RacingTrack rat
+	LEFT OUTER JOIN VEC_Vehicle vec
+		ON  vec.VEC_CarId = rat.VEC_CarId
 	WHERE
-		COD_Game = cdGame
-		AND COD_Type = 0
-		AND RAT_Name LIKE CONCAT(searchTerm, '%')
+		rat.COD_Game = cdGame
+		AND rat.COD_Type = 0
+		AND rat.RAT_Name LIKE CONCAT(searchTerm, '%')
 	ORDER BY
-		RAT_Name;
+		rat.RAT_Name;
 END //
 
 CREATE PROCEDURE readChampionship(
@@ -1645,24 +1677,24 @@ BEGIN
 		rce.RCE_RaceNo,
 		rce.RAT_TrackId,
 		rat.RAT_Name AS RAT_TrackName,
-		-- restrictions (inherit from custom tracks)
-		COALESCE(rat.COD_Series, rce.COD_Series) AS COD_Series,
-		COALESCE(cdSeries.COD_Text, rat.COD_Series, rce.COD_Series) AS TXT_Series,
-		COALESCE(rat.COD_CarTheme, rce.COD_CarTheme) AS COD_CarTheme,
-		COALESCE(cdCarTheme.COD_Text, rat.COD_CarTheme, rce.COD_CarTheme) AS TXT_CarTheme,			
-		COALESCE(rat.VEC_CarId, rce.VEC_CarId) AS VEC_CarId,
+		-- restrictions (inherit/override from custom tracks)
+		rce.COD_Series AS COD_Series,
+		COALESCE(cdSeries.COD_Text, rce.COD_Series) AS TXT_Series,
+		rce.COD_CarTheme AS COD_CarTheme,
+		COALESCE(cdCarTheme.COD_Text, rce.COD_CarTheme) AS TXT_CarTheme,			
+		rce.VEC_CarId AS VEC_CarId,
 		vec.VEC_Name AS VEC_CarName,			
-		COALESCE(rat.COD_CarClass, rce.COD_CarClass) AS COD_CarClass,
-		COALESCE(cdCarClass.COD_Text, rat.COD_CarClass, rce.COD_CarClass) AS TXT_CarClass,
-		-- conditions (inherit from custom tracks)
-		COALESCE(rat.COD_Season, rce.COD_Season) AS COD_Season,
-		COALESCE(cdSeason.COD_Text, rat.COD_Season, rce.COD_Season) AS TXT_Season,
-		COALESCE(rat.COD_TimeOfDay, rce.COD_TimeOfDay) AS COD_TimeOfDay,
-		COALESCE(cdTimeOfDay.COD_Text, rat.COD_TimeOfDay, rce.COD_TimeOfDay) AS TXT_TimeOfDay,
-		COALESCE(rat.COD_Weather, rce.COD_Weather) AS COD_Weather,
-		COALESCE(cdWeather.COD_Text, rat.COD_Weather, rce.COD_Weather) AS TXT_Weather,
-		COALESCE(rat.COD_TimeProgression, rce.COD_TimeProgression) AS COD_TimeProgression,
-		COALESCE(cdTimeProgression.COD_Text, rat.COD_TimeProgression, rce.COD_TimeProgression) AS TXT_TimeProgression
+		rce.COD_CarClass AS COD_CarClass,
+		COALESCE(cdCarClass.COD_Text, rce.COD_CarClass) AS TXT_CarClass,
+		-- conditions (inherit/override from custom tracks)
+		rce.COD_Season AS COD_Season,
+		COALESCE(cdSeason.COD_Text, rce.COD_Season) AS TXT_Season,
+		rce.COD_TimeOfDay AS COD_TimeOfDay,
+		COALESCE(cdTimeOfDay.COD_Text, rce.COD_TimeOfDay) AS TXT_TimeOfDay,
+		rce.COD_Weather AS COD_Weather,
+		COALESCE(cdWeather.COD_Text, rce.COD_Weather) AS TXT_Weather,
+		rce.COD_TimeProgression AS COD_TimeProgression,
+		COALESCE(cdTimeProgression.COD_Text, rce.COD_TimeProgression) AS TXT_TimeProgression
 	FROM RCE_Race rce
 	JOIN USR_User usrCreated
 		ON  usrCreated.USR_UserId = rce.USR_CreatedBy
@@ -1671,35 +1703,35 @@ BEGIN
 	LEFT OUTER JOIN RAT_RacingTrack rat
 		ON rat.RAT_TrackId = rce.RAT_TrackId
 	LEFT OUTER JOIN VEC_Vehicle vec
-		ON vec.VEC_CarId = COALESCE(rat.VEC_CarID, rce.VEC_CarId)
+		ON vec.VEC_CarId = rce.VEC_CarId
 	-- Codes
 	LEFT OUTER JOIN COD_CodeLookup cdSeries
 		ON  cdSeries.COD_Domain = 'Series'
-		AND cdSeries.COD_Value = COALESCE(rat.COD_Series, rce.COD_Series)
+		AND cdSeries.COD_Value = rce.COD_Series
 		AND cdSeries.COD_Language = cdLanguage
 	LEFT OUTER JOIN COD_CodeLookup cdCarTheme
 		ON  cdCarTheme.COD_Domain = 'Car Theme'
-		AND cdCarTheme.COD_Value = COALESCE(rat.COD_CarTheme, rce.COD_CarTheme)
+		AND cdCarTheme.COD_Value = rce.COD_CarTheme
 		AND cdCarTheme.COD_Language = cdLanguage
 	LEFT OUTER JOIN COD_CodeLookup cdCarClass
 		ON  cdCarClass.COD_Domain = 'Car Class'
-		AND cdCarClass.COD_Value = COALESCE(rat.COD_CarClass, rce.COD_CarClass)
+		AND cdCarClass.COD_Value = rce.COD_CarClass
 		AND cdCarClass.COD_Language = cdLanguage
 	LEFT OUTER JOIN COD_CodeLookup cdSeason
 		ON  cdSeason.COD_Domain = 'Season'
-		AND cdSeason.COD_Value = COALESCE(rat.COD_Season, rce.COD_Season)
+		AND cdSeason.COD_Value = rce.COD_Season
 		AND cdSeason.COD_Language = cdLanguage
 	LEFT OUTER JOIN COD_CodeLookup cdTimeOfDay
 		ON  cdTimeOfDay.COD_Domain = 'Day Time'
-		AND cdTimeOfDay.COD_Value = COALESCE(rat.COD_TimeOfDay, rce.COD_TimeOfDay)
+		AND cdTimeOfDay.COD_Value = rce.COD_TimeOfDay
 		AND cdTimeOfDay.COD_Language = cdLanguage
 	LEFT OUTER JOIN COD_CodeLookup cdWeather
 		ON  cdWeather.COD_Domain = 'Weather'
-		AND cdWeather.COD_Value = COALESCE(rat.COD_Weather, rce.COD_Weather)
+		AND cdWeather.COD_Value = rce.COD_Weather
 		AND cdWeather.COD_Language = cdLanguage
 	LEFT OUTER JOIN COD_CodeLookup cdTimeProgression
-		ON  cdTimeProgression.COD_Domain = 'Day Time'
-		AND cdTimeProgression.COD_Value = COALESCE(rat.COD_TimeProgression, rce.COD_TimeProgression)
+		ON  cdTimeProgression.COD_Domain = 'Time Progression'
+		AND cdTimeProgression.COD_Value = rce.COD_TimeProgression
 		AND cdTimeProgression.COD_Language = cdLanguage	
 	WHERE
 		rce.CMP_ChampionshipId = championshipId
@@ -2303,6 +2335,26 @@ BEGIN
 		CMT_RowId = id;
 END //
 
+CREATE PROCEDURE readVoting(
+	IN userId INT,
+	IN tableRef CHAR(3),
+	IN recordId INT
+)
+BEGIN
+	SELECT
+		vts.*,
+		COALESCE(rav.RAV_Vote, 0) AS RAV_UserVote
+	FROM V_Votes vts
+	-- User's Rating Vote
+	LEFT OUTER JOIN RAV_RatingVote rav
+		ON  rav.RAV_TableRef = vts.RAV_TableRef
+		AND rav.RAV_RecordId = vts.RAV_RecordId
+		AND rav.USR_UserId = userId
+	WHERE
+		vts.RAV_TableRef = tableRef
+		AND vts.RAV_RecordId = recordId;
+END //
+
 DELIMITER ;
 
 -- more SPs...
@@ -2562,6 +2614,14 @@ INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, RAT_Name, COD_Type, COD_Se
 INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, RAT_Name, COD_Type, COD_Series) VALUES (1, 0, 'Reservoir Run', 0, 4);
 INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, RAT_Name, COD_Type, COD_Series) VALUES (1, 0, 'Wind Farm Rush', 0, 4);
 */
+
+-- set all standard tracks to "open/all classes"
+UPDATE RAT_RacingTrack
+SET
+	COD_CarClass = 0
+WHERE
+	COD_Type = 0
+;
 
 -- translations of event names
 INSERT INTO TXT_TextTranslation (TXT_TableRef, TXT_ObjectId, COD_Language, TXT_Text)
@@ -3657,12 +3717,6 @@ WHERE
 		'Festivalrunde, Rundkurs',
 		'Around The Hill, Rundkurs'
 	)
-;
-
-UPDATE RAT_RacingTrack
-	SET RAT_DefaultLapTimeSec = NULL
-WHERE
-	RAT_DefaultLapTimeSec = 0
 ;
 
 UPDATE RAT_RacingTrack
