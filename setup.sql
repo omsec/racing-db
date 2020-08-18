@@ -1411,7 +1411,7 @@ CREATE PROCEDURE updateTrack(
 	IN cdWeather INT,
 	IN cdTimeProgression INT,
 	
-	IN defaultLapTimeMin SMALLINT,
+	IN defaultLapTimeSec SMALLINT,
 	IN distanceKM SMALLINT,
 	IN sharingCode INT,
 	IN cdDifficulty INT,
@@ -1443,7 +1443,7 @@ BEGIN
 			COD_Weather = cdWeather,
 			COD_TimeProgression = cdTimeProgression,
 			
-			RAT_DefaultLapTimeMin = defaultLapTimeMin,
+			RAT_DefaultLapTimeSec = defaultLapTimeSec,
 			RAT_DistanceKM = distanceKM,
 			RAT_SharingCode = sharingCode,
 			COD_Difficulty = cdDifficulty,
@@ -2466,13 +2466,15 @@ INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUE
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Car Theme', 31, 0, 'Track Toys');
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Car Theme', 32, 0, 'Vintage Racers');
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Car Theme', 33, 0, 'Trucks');
--- based on UranDieb Excel
+-- based on UranDieb Excel (momentan nicht im Client Mapping)
+/*
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Car Theme', 34, 0, 'La Corsa Italiana');
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Car Theme', 35, 0, 'German Performance');
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Car Theme', 36, 0, 'Vive la France');
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Car Theme', 37, 0, 'Rule Britannia');
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Car Theme', 38, 0, 'AMG vs M Sport');
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Car Theme', 39, 0, 'Spezial');
+*/
 
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Season', 0,  0, 'Spring');
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Season', 1,  0, 'Summer');
