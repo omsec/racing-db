@@ -45,6 +45,8 @@ DROP TABLE if EXISTS RCE_Race
 ;
 DROP TABLE if EXISTS CMT_Comment
 ;
+DROP TABLE if EXISTS ULA_UserLoginAudit
+;
 
 DROP PROCEDURE if EXISTS listCodeTypes
 ;
@@ -141,6 +143,10 @@ DROP PROCEDURE if EXISTS deleteComment
 DROP PROCEDURE if EXISTS readVoting
 ;
 DROP PROCEDURE if EXISTS countUserVotes
+;
+DROP PROCEDURE if EXISTS createAuditAction
+;
+DROP PROCEDURE if EXISTS listTrackUsage
 ;
 
 DROP VIEW if EXISTS V_Votes
@@ -404,6 +410,18 @@ CREATE TABLE CMT_Comment
 )
 ;
 CREATE INDEX NI_Comment1 ON CMT_Comment (CMT_TableRef, CMT_RecordId)
+;
+
+-- allows NULL values to prevent login problems due to logging
+CREATE TABLE ULA_UserLoginAudit
+(
+	ULA_RowId INT AUTO_INCREMENT PRIMARY KEY,
+	ULA_ActionTS TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	COD_Action INT NULL,
+	ULA_OriginIP VARCHAR(50) NULL,
+	ULA_UserName VARCHAR(50) NULL, -- provided by client, may not be valid USR_User
+	COD_Status INT NULL
+)
 ;
 
 CREATE VIEW V_Votes as
@@ -1363,6 +1381,45 @@ BEGIN
 	FROM rav_ratingvote
 	WHERE
 		USR_UserId = userId;
+END //
+
+CREATE PROCEDURE createAuditAction(
+	IN cdAction INT,
+	IN originIP VARCHAR(50),
+	IN userName VARCHAR(50),
+	IN cdStatus INT
+)
+BEGIN
+	INSERT INTO ULA_UserLoginAudit
+	(COD_Action, ULA_OriginIP, ULA_UserName, COD_Status)
+	VALUES
+	(cdAction, originIP, userName, cdStatus);
+END //
+
+CREATE PROCEDURE listTrackUsage(
+	IN trackId INT
+)
+BEGIN
+	SELECT
+		-- rat.RAT_TrackId,
+		cmp.CMP_ChampionshipId,
+	 	cmp.CMP_Name,
+		GROUP_CONCAT(rce.RCE_RaceNo
+			ORDER BY rce.RCE_RaceNo
+			SEPARATOR ' & '
+		) AS Races
+	FROM RAT_RacingTrack rat
+	JOIN RCE_Race rce
+		ON  rce.RAT_TrackId = rat.RAT_TrackId
+	JOIN CMP_Championship cmp
+		ON  cmp.CMP_ChampionshipId = rce.CMP_ChampionshipId
+	WHERE
+		rat.RAT_TrackId = trackId		
+	GROUP BY
+		rat.RAT_TrackId,
+	 	cmp.CMP_Name
+	ORDER BY
+		COALESCE(cmp.CMP_Modified, cmp.CMP_Created) DESC;
 END //
 
 /*
@@ -2522,6 +2579,17 @@ INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUE
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Comment Status', 1,  0, 'released');
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Comment Status', 2,  0, 'blocked');
 INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Comment Status', 3,  0, 'deleted by user');
+
+INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Access Action', 0, 0, 'logged in');
+INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Access Action', 1, 0, 'logged out');
+
+INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Access Status', 0, 0, 'succesfull');
+INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Access Status', 1, 0, 'unknown user');
+INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Access Status', 2, 0, 'invalid password');
+INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Access Status', 3, 0, 'account disabled');
+INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Access Status', 4, 0, 'IP address blocked');
+INSERT INTO COD_CodeLookup (COD_Domain, COD_Value, COD_Language, COD_Text) VALUES ('Access Status', 5, 0, 'service down/maintenance');
+
 
 -- according to https://forums.forzamotorsport.net/turn10_postsm976461_Event-race-List.aspx
 INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, RAT_Name, COD_Type, COD_Series) VALUES (1, 0, 'Ambleside Village Circuit', 0, 1);
