@@ -148,6 +148,8 @@ DROP PROCEDURE if EXISTS createAuditAction
 ;
 DROP PROCEDURE if EXISTS listTrackUsage
 ;
+DROP PROCEDURE if EXISTS updateUserRole
+;
 
 DROP VIEW if EXISTS V_Votes
 ;
@@ -1377,10 +1379,16 @@ CREATE PROCEDURE countUserVotes(
 	IN userId INT
 )
 BEGIN
-	SELECT COUNT(*) AS count_Votes
-	FROM rav_ratingvote
+	SELECT
+		usr.COD_Role,
+		COUNT(rav.RAV_RowId) AS count_Votes
+	FROM USR_User usr
+	LEFT OUTER JOIN RAV_RatingVote rav
+		ON  rav.USR_UserId = usr.USR_UserId
 	WHERE
-		USR_UserId = userId;
+		usr.USR_UserId = userId
+	GROUP BY
+		usr.COD_Role;
 END //
 
 CREATE PROCEDURE createAuditAction(
@@ -1420,6 +1428,21 @@ BEGIN
 	 	cmp.CMP_Name
 	ORDER BY
 		COALESCE(cmp.CMP_Modified, cmp.CMP_Created) DESC;
+END //
+
+CREATE PROCEDURE updateUserRole(
+	IN executiveUserId INT,
+	IN effectiveUserId INT,
+	IN cdRole INT
+)
+BEGIN
+	UPDATE USR_User
+	SET
+		USR_Modified = CURRENT_TIMESTAMP,
+		USR_ModifiedBy = executiveUserId,
+		COD_Role = cdRole
+	WHERE
+		USR_UserId = effectiveUserId;
 END //
 
 /*
@@ -2258,6 +2281,8 @@ END //
 
 -- allow changes of the "profile-part" fields only
 -- ("user" object is system-owned and may not be changed)
+-- (specific services/procedures such as "updateUserRole" may exist)
+-- ToDo: Change USer & TS setzen
 CREATE PROCEDURE updateUser(
 	IN userId INT,
 	IN xBoxTag VARCHAR(50),
