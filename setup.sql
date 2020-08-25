@@ -953,7 +953,7 @@ BEGIN
 		rat.RAT_TrackId,
 		rat.RAT_Created,
 		rat.USR_CreatedBy,
-		--usrCreated.USR_LoginName AS USR_CreatedByName,
+		-- usrCreated.USR_LoginName AS USR_CreatedByName,
 		COALESCE(rat.RAT_Designer, usrCreated.USR_XBoxTag, usrCreated.USR_DiscordName, usrCreated.USR_LoginName) AS USR_CreatedByName,
 		rat.RAT_Modified,
 		rat.USR_ModifiedBy,
@@ -3700,6 +3700,7 @@ WHERE
 -- führen dann aber in der Anwendung zu einem Absturz ohne klare Fehlermeldung!!
 -- (die services kommen "leer" zurück, kein Content/Response)
 -- deshalb mussten Unmlaute und das deutsche ß entfernt werden.
+-- auch das Grad-Zeichen (z. B. 90° Kurve) verträgt er nicht!
 INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 5, 'Highlands to Beach, Sprint', 'PlutoKaskade641', 0, 540, 26.6, 878858666, '', 'Glen Rannoch, Pfad');
 INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 5, 'Beach to Ambleside, Sprint', 'PlutoKaskade641', 0, 595, 30.1, 388938475, '', 'The Meadows, Sprint');
 INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 5, 'Ambleside to Highlands, Sprint', 'PlutoKaskade641', 0, 415, 22.5, 904916263, '', 'Ambleside, Sprint');
@@ -3718,7 +3719,7 @@ INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_
 INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 5, 'Circuit 3', 'MrElvinco', 0, 0, NULL, NULL, '', 'Bamburgh, Kueste-Rundstrecke');
 INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 5, 'Circuit 4', 'MrElvinco', 2, 370, 20.3, 872808689, 'anspruchsvollere Strecke', 'Moorhead-Windfarm, Rundstrecke');
 INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 5, 'Circuit 5', 'MrElvinco', 3, 90, 4.8, 550621256, 'kurzes Rennen -> gut zum Einfahren', 'Greendale, Club-Strecke');
-INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 5, 'Circuit 6', 'MrElvinco', 6, 120, 5, 147522464, '90° Kurven', 'Broadway, Dorf-Rundstrecke');
+INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 5, 'Circuit 6', 'MrElvinco', 6, 120, 5, 147522464, '90 Grad Kurven', 'Broadway, Dorf-Rundstrecke');
 INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 5, 'Tour la Forza', 'XScarface86X', 0, 1155, 58.6, 121013903, '', 'Greendale, Super Sprint');
 INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 5, 'Rundkurs, Stadt', 'XScarface86X', 3, 200, 8.2, 682007112, '', 'Edinburgh, Bahnhof - Rundstrecke');
 INSERT INTO RAT_RacingTrack (USR_CreatedBy, COD_Game, COD_Type, COD_Series, COD_Sharing, COD_CarClass, RAT_Name, RAT_Designer, RAT_Laps, RAT_DefaultLapTimeSec, RAT_DistanceKM, RAT_SharingCode, RAT_Description, RAT_CustomRoute) VALUES (1, 0, 1, 1, 0, 5, 'Bergrunde', 'XScarface86X', 3, 212, 11.3, 110330366, '', 'Glen Rannoch, Huegelstrasse - Sprint');
